@@ -16,6 +16,7 @@ from audit_trail.common import DictDiffer
 from audit_trail.signals import audit_ready, audit_m2m_ready
 from audit_trail.apps import AuditTrailConfig
 from audit_trail.middleware import AuditMiddleware
+from audit_trail.utils import merge_dict
 
 LOGGER = logging.getLogger('audit_log')
 
@@ -48,14 +49,14 @@ class AuditManager(models.QuerySet):
             audit_trail.create_audit()
         return return_val
 
-    def update_or_create(self, *args, defaults=None, **kwargs):
+    def update_or_create(self, *args, **kwargs):
         """
         Looks up an object with the given kwargs, updating one with defaults
         if it exists, otherwise creates a new one.
         Returns a tuple (object, created), where created is a boolean
         specifying whether an object was created.
         """
-        defaults = defaults or {}
+        defaults = kwargs.get('defaults') or {}
         lookup, params = self._extract_model_params(defaults, **kwargs)
         self._for_write = True
         with transaction.atomic(using=self.db):
@@ -64,12 +65,12 @@ class AuditManager(models.QuerySet):
             except self.model.DoesNotExist:
                 obj, created = self._create_object_from_params(lookup, params)
                 if created:
-                    prev_val, curr_val = self._get_audit_values(obj, {**defaults, **kwargs})
+                    prev_val, curr_val = self._get_audit_values(obj, merge_dict(defaults, kwargs))
                     audit_trail = CoreAudit(self.model, obj, 'I',
                                     {}, curr_val)
                     audit_trail.create_audit()
                     return obj, created
-            prev_val, curr_val = self._get_audit_values(obj, {**defaults, **kwargs})
+            prev_val, curr_val = self._get_audit_values(obj, merge_dict(defaults, kwargs))
             for k, v in six.iteritems(defaults):
                 setattr(obj, k, v() if callable(v) else v)
             obj.save(using=self.db)
