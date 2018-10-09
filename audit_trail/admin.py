@@ -84,9 +84,9 @@ def get_audit_qs(model_name, object_id):
 
 
 def get_audit_trail(model_name, object_id):
-    return get_qs.values('transacted_on', 'transacted_by',
-                         'transaction_type', 'field_name',
-                         'current_val', 'current_val_type',
-                         'previous_val', 'previous_val_type',
-                         'xaction__display_text'
-                        )
+    return get_audit_qs.values('transacted_on', 'transacted_by',
+                               'transaction_type', 'field_name',
+                               'current_val', 'current_val_type',
+                               'previous_val', 'previous_val_type',
+                               'xaction__display_text'
+                               )
